@@ -8,7 +8,7 @@ Simultaneously Calibration camere and lidar's extrins parameter, and project poi
 - [ ] lidar's front-end
 - [ ] construct non-linear calib problem.
 - [X] projection:
-  ![](./source/proj.png)
+  ![](./resource/proj.png)
 
 ## Related paper
 [LiDAR and Camera Calibration using Motion Estimated by Sensor Fusion Odometry](https://arxiv.org/abs/1804.05178)
