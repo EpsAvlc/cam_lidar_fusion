@@ -12,11 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   cv_bridge
+  message_filters
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
+find_package(PCL REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -116,10 +118,13 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
+set(Eigen_INCLUDE_DIRS "usr/include/eigen3")
 include_directories(
 include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${PCL_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -136,12 +141,13 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-# add_executable(point_cloud_proj_node src/kitti_parser_node.cpp)
+add_executable(point_cloud_proj_node src/point_cloud_proj_node.cpp)
 
-# target_link_libraries(kitti_parser_node
-#   ${catkin_LIBRARIES}
-#   ${OpenCV_LIBRARIES}
-# )
+target_link_libraries(point_cloud_proj_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 
 #############
 ## Install ##
