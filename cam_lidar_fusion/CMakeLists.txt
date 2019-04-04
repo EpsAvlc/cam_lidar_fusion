@@ -106,7 +106,7 @@ find_package(PCL REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
+#  INCLUDE_DIRS include
  LIBRARIES OpenCV
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
@@ -141,9 +141,16 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(point_cloud_proj_node src/point_cloud_proj_node.cpp)
+add_executable(point_cloud_proj src/point_cloud_proj_node.cpp)
 
-target_link_libraries(point_cloud_proj_node
+target_link_libraries(point_cloud_proj
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+add_executable(lidar_odometry src/lidar_odometry_node.cpp)
+target_link_libraries(lidar_odometry
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${PCL_LIBRARIES}
