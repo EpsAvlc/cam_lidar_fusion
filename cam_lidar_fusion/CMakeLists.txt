@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   message_filters
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +109,7 @@ find_package(PCL REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
  LIBRARIES OpenCV
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+ CATKIN_DEPENDS roscpp rospy std_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -142,7 +143,6 @@ include
 ## The recommended prefix ensures that target names across packages don't collide
 
 add_executable(point_cloud_proj src/point_cloud_proj_node.cpp)
-
 target_link_libraries(point_cloud_proj
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
@@ -154,6 +154,12 @@ target_link_libraries(lidar_odometry
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+add_executable(disp_lidar_cam_transform utils/disp_lidar_cam_transform.cpp)
+target_link_libraries(disp_lidar_cam_transform
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 #############
