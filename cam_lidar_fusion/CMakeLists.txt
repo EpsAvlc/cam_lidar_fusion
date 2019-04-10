@@ -142,7 +142,7 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(point_cloud_proj src/point_cloud_proj_node.cpp)
+add_executable(point_cloud_proj src/point_cloud_proj.cpp)
 target_link_libraries(point_cloud_proj
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}

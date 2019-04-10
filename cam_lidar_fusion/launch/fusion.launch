@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/cam_lidar_calib.yaml" />
+    <rosparam command="load" file="$(arg config_file)" ns="cam_lidar_fusion"/>
+
+    <node name="plag_bag" pkg="rosbag" type="play" args="/home/cm/Workspaces/cam_lidar_fusion/src/cam_lidar_fusion/bags/2019-04-09-16-47-11.bag"/> 
+    <node name="point_cloud_project_node" pkg="cam_lidar_fusion" type="point_cloud_proj" output="screen"/> 
+</launch>
