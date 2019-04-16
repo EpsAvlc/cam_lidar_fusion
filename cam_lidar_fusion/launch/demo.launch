@@ -1,8 +1,0 @@
-<launch>
-    <node name="plag_bag" pkg="rosbag" type="play" args="/home/cm/Workspaces/cam_lidar_fusion/src/cam_lidar_fusion/bags/2019-04-09-16-47-11.bag"/> 
-    <!-- <include file="/home/cm/Workspaces/cam_lidar_fusion/src/darknet_ros/darknet_ros/launch/yolo_v3.launch"/> -->
-    <node name="point_cloud_project_node" pkg="cam_lidar_fusion" type="point_cloud_proj" output="screen"> 
-        <param name="cam_topic" value ="/camera_array/cam0/image_raw"/>
-        <param name="lidar_topic" value ="/velodyne_points"/>
-    </node> 
-</launch>

@@ -10,7 +10,10 @@
 #include "point_cloud_proj.h"
 
 #include <pcl_conversions/pcl_conversions.h>
-
+#include <pcl/io/pcd_io.h>
+#include <tf/transform_broadcaster.h>
+#include <tf/tf.h>
+#include <tf_conversions/tf_eigen.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -38,14 +41,45 @@ void PointCloudProj::readParam()
     /* Note that the order of data in matrix in ros is diffent from eigen*/
     cam_intrins_.transposeInPlace();
     
-    vector<double> lidar2cam_data;
-    ROS_ASSERT(nh_local_.getParam("lidar2cam", lidar2cam_data));
-    ROS_ASSERT(lidar2cam_data.size() == 16);
-    for(int i = 0; i < lidar2cam_data.size(); i++)
+    vector<double> xyzrpy_init;
+    if(nh_local_.getParam("xyzrpy_init", xyzrpy_init))
     {
-        lidar_to_cam_(i) = lidar2cam_data[i];
+        Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(xyzrpy_init[3], Eigen::Vector3d::UnitX()));
+        Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(xyzrpy_init[4], Eigen::Vector3d::UnitY()));
+        Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(xyzrpy_init[5], Eigen::Vector3d::UnitZ()));
+        pose_init_.block(0, 0, 3, 3) = (yawAngle*pitchAngle*rollAngle).matrix();
+        pose_init_(0, 3) = xyzrpy_init[0];
+        pose_init_(1, 3) = xyzrpy_init[1];
+        pose_init_(2, 3) = xyzrpy_init[2];
+        pose_init_(3, 3) = 1;
+        cout << pose_init_ << endl;
     }
-    lidar_to_cam_.transposeInPlace();
+
+    vector<double> xyzrpy;
+    if(nh_local_.getParam("xyzrpy", xyzrpy))
+    {
+        Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()));
+        Eigen::AngleAxisd pitchAngle(Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()));
+        Eigen::AngleAxisd yawAngle(Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ()));
+        lidar_to_cam_.block(0, 0, 3, 3) = (yawAngle*pitchAngle*rollAngle).matrix();
+        lidar_to_cam_(0, 3) = xyzrpy[0];
+        lidar_to_cam_(1, 3) = xyzrpy[1];
+        lidar_to_cam_(2, 3) = xyzrpy[2];
+        lidar_to_cam_(3, 3) = 1;
+        cout << lidar_to_cam_ << endl;
+    }
+    else
+    {
+        vector<double> lidar2cam_data;
+        ROS_ASSERT(nh_local_.getParam("lidar2cam", lidar2cam_data));
+        ROS_ASSERT(lidar2cam_data.size() == 16);
+        for(int i = 0; i < lidar2cam_data.size(); i++)
+        {
+            lidar_to_cam_(i) = lidar2cam_data[i];
+        }
+        lidar_to_cam_.transposeInPlace();
+        cout << "lidar_to_cam: " << endl << lidar_to_cam_ << endl;
+    }
 
     ROS_ASSERT(nh_local_.getParam("cam_topic", cam_topic_));
     ROS_ASSERT(nh_local_.getParam("lidar_topic", lidar_topic_));
@@ -64,12 +98,34 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         points_3d_homo(2, i) = pcl_cloud[i].z;
         points_3d_homo(3, i) = 1;
     }
-    Eigen::MatrixXd points_3d_in_cam_homo = lidar_to_cam_ * points_3d_homo;
+
+    Eigen::MatrixXd points_3d_in_cam_homo = lidar_to_cam_ * pose_init_ *  points_3d_homo;
+
+    // cout << "Final transform: " << endl << lidar_to_cam_ * pose_init_ << endl;
+
+    // broad cast tf
+    static tf::TransformBroadcaster br;
+    tf::Transform trans;
+    Eigen::Isometry3d lidar_to_cam_aff;
+    lidar_to_cam_aff.matrix() = lidar_to_cam_ * pose_init_;
+    tf::transformEigenToTF(lidar_to_cam_aff, trans);
+    br.sendTransform(tf::StampedTransform(trans, ros::Time::now(), "camera", "lidar"));
+
+
     Eigen::MatrixXd points_3d_in_cam = points_3d_in_cam_homo.block(0, 0, 3, pcl_cloud.size());
     Eigen::MatrixXd points_2d_homo = cam_intrins_ * points_3d_in_cam;
 
     /* Draw result */
     cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(image);
+    /* Save pc and img*/
+    {
+        static int count = 0;
+        imwrite("/home/cm/Workspaces/cam_lidar_fusion/src/cam_lidar_fusion/bags/" + to_string(count) + ".jpg", img_ptr->image);
+        pcl::io::savePCDFileASCII("/home/cm/Workspaces/cam_lidar_fusion/src/cam_lidar_fusion/bags/" + to_string(count) + ".pcd", pcl_cloud);
+        count ++;
+    }
+
+    cvtColor(img_ptr->image, img_ptr->image, COLOR_GRAY2RGB);
     for(int i = 0; i < pcl_cloud.size(); i++)
     {
         int x = points_2d_homo(0, i) / points_2d_homo(2, i);
@@ -77,9 +133,9 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         if(x < 0 || x > img_ptr->image.cols ||
            y < 0 || y > img_ptr->image.rows || points_2d_homo(2, i) < 0)
             continue;
-        uchar color_val = points_3d_in_cam(2, i) > 2 ? 0 : 255;
+        Scalar color_val(saturate_cast<uchar>(points_3d_in_cam(2, i) / 20 * 255), saturate_cast<uchar>(points_3d_in_cam(2, i) / 10 * 255), saturate_cast<uchar>(points_3d_in_cam(2, i) / 5 * 255));
         Scalar color(color_val);
-        circle(img_ptr->image, Point(x, y), 2, color, -1);
+        circle(img_ptr->image, Point(x, y), 2, color_val, -1);
     }
     imshow("after", img_ptr->image);
     waitKey(5);

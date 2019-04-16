@@ -35,5 +35,6 @@ private:
     /** class variable**/
     Eigen::Matrix3d cam_intrins_;
     Eigen::Matrix4d lidar_to_cam_;
+    Eigen::Matrix4d pose_init_;
     std::string lidar_topic_, cam_topic_;
 };

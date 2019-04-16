@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   message_filters
   tf
+  tf_conversions
 )
 
 ## System dependencies are found with CMake's conventions
@@ -109,7 +110,7 @@ find_package(PCL REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
  LIBRARIES OpenCV
- CATKIN_DEPENDS roscpp rospy std_msgs tf
+ CATKIN_DEPENDS roscpp rospy std_msgs tf tf_conversions
 #  DEPENDS system_lib
 )
 
@@ -158,6 +159,12 @@ target_link_libraries(lidar_odometry
 
 add_executable(disp_lidar_cam_transform utils/disp_lidar_cam_transform.cpp)
 target_link_libraries(disp_lidar_cam_transform
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+add_executable(disp_eight_points utils/disp_eight_points.cpp)
+target_link_libraries(disp_eight_points
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )

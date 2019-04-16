@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/eight_points.yaml" />
+    <rosparam command="load" file="$(arg config_file)" ns="cam_lidar_fusion"/>
+
+    <node name="disp_eight_points" pkg="cam_lidar_fusion" type="disp_eight_points" output="screen"/> 
+    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cam_lidar_fusion)/config/disp_lidar_cam_transform.rviz"/> -->
+</launch>

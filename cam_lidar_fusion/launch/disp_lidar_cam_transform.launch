@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/cam_lidar_calib.yaml" />
+    <rosparam command="load" file="$(arg config_file)" ns="cam_lidar_fusion"/>
+
+    <node name="point_cloud_project_node" pkg="cam_lidar_fusion" type="disp_lidar_cam_transform" output="screen"/> 
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find cam_lidar_fusion)/config/disp_lidar_cam_transform.rviz"/>
+</launch>
