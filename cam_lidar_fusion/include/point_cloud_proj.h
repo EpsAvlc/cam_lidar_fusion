@@ -6,6 +6,8 @@
  *
  * Author: EpsAvlc
  */
+#ifndef POINT_CLOUD_PROJ_H_
+#define POINT_CLOUD_PROJ_H_
 
 #include <Eigen/Core>
 
@@ -28,6 +30,7 @@ private:
     ros::NodeHandle nh_, nh_local_;
     message_filters::Subscriber<sensor_msgs::Image> cam_sub_;
     message_filters::Subscriber<sensor_msgs::PointCloud2> lidar_sub_;
+    ros::Publisher projected_cloud_pub;
 
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::PointCloud2> cam_lidar_fuse_policy;
     typedef message_filters::Synchronizer<cam_lidar_fuse_policy> Sync;
@@ -38,3 +41,5 @@ private:
     Eigen::Matrix4d pose_init_;
     std::string lidar_topic_, cam_topic_;
 };
+
+#endif // !POINT_CLOUD_PROJ_H_

@@ -53,4 +53,4 @@ CATKIN_IGNORE
 
 /cam_lidar_fusion/bags/
 
-
+/darknet_ros

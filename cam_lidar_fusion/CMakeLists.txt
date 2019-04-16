@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_filters
   tf
   tf_conversions
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
@@ -123,6 +124,7 @@ catkin_package(
 set(Eigen_INCLUDE_DIRS "usr/include/eigen3")
 include_directories(
 include
+../../devel/include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
@@ -157,6 +159,13 @@ target_link_libraries(lidar_odometry
   ${PCL_LIBRARIES}
 )
 
+add_executable(enhanced_yolo src/enhanced_yolo.cpp)
+target_link_libraries(enhanced_yolo
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
 add_executable(disp_lidar_cam_transform utils/disp_lidar_cam_transform.cpp)
 target_link_libraries(disp_lidar_cam_transform
   ${catkin_LIBRARIES}
@@ -165,6 +174,12 @@ target_link_libraries(disp_lidar_cam_transform
 
 add_executable(disp_eight_points utils/disp_eight_points.cpp)
 target_link_libraries(disp_eight_points
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+add_executable(image_publisher utils/image_publisher.cpp)
+target_link_libraries(image_publisher
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
