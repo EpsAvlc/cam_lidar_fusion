@@ -14,7 +14,6 @@
 #include <pcl/console/time.h>
 #include <pcl/filters/passthrough.h>
 // #include "pointXYZPixel.h"
-
 #include <tf/transform_broadcaster.h>
 #include <tf/tf.h>
 #include <tf_conversions/tf_eigen.h>
@@ -39,7 +38,7 @@ PointCloudProj::PointCloudProj(ros::NodeHandle& nh, ros::NodeHandle& nh_local): 
 void PointCloudProj::readParam()
 {
     vector<double> cam_intrins_data;
-    ROS_ASSERT(nh_local_.getParam("cam_intrins", cam_intrins_data));
+    nh_local_.getParam("cam_intrins", cam_intrins_data);
     ROS_ASSERT(cam_intrins_data.size() == 9);
     for(int i = 0; i < cam_intrins_data.size(); i++)
     {
@@ -59,7 +58,6 @@ void PointCloudProj::readParam()
         pose_init_(1, 3) = xyzrpy_init[1];
         pose_init_(2, 3) = xyzrpy_init[2];
         pose_init_(3, 3) = 1;
-        cout << pose_init_ << endl;
     }
 
     vector<double> xyzrpy;
@@ -73,27 +71,26 @@ void PointCloudProj::readParam()
         lidar_to_cam_(1, 3) = xyzrpy[1];
         lidar_to_cam_(2, 3) = xyzrpy[2];
         lidar_to_cam_(3, 3) = 1;
-        cout << lidar_to_cam_ << endl;
     }
     else
     {
         vector<double> lidar2cam_data;
-        ROS_ASSERT(nh_local_.getParam("lidar2cam", lidar2cam_data));
+        nh_local_.getParam("/cam_lidar_fusion/lidar2cam", lidar2cam_data);
         ROS_ASSERT(lidar2cam_data.size() == 16);
         for(int i = 0; i < lidar2cam_data.size(); i++)
         {
             lidar_to_cam_(i) = lidar2cam_data[i];
         }
         lidar_to_cam_.transposeInPlace();
-        cout << "lidar_to_cam: " << endl << lidar_to_cam_ << endl;
     }
 
-    ROS_ASSERT(nh_local_.getParam("cam_topic", cam_topic_));
-    ROS_ASSERT(nh_local_.getParam("lidar_topic", lidar_topic_));
+    nh_local_.getParam("cam_topic", cam_topic_);
+    nh_local_.getParam("lidar_topic", lidar_topic_);
 }
 
 void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::PointCloud2ConstPtr& cloud)
 {
+    // ROS_INFO("FUCK!!");
     pcl::console::TicToc tt;
     tt.tic();
 
@@ -113,6 +110,7 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         pass.filter (*pcl_cloud);
     } 
     Eigen::MatrixXd points_3d_homo(4, pcl_cloud->size());
+
     for(int i = 0; i < pcl_cloud->size(); i++)
     {
         points_3d_homo(0, i) = (*pcl_cloud)[i].x;
@@ -126,12 +124,12 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
     // cout << "Final transform: " << endl << lidar_to_cam_ * pose_init_ << endl;
 
     // broad cast tf
-    static tf::TransformBroadcaster br;
-    tf::Transform trans;
-    Eigen::Isometry3d lidar_to_cam_aff;
-    lidar_to_cam_aff.matrix() = lidar_to_cam_ * pose_init_;
-    tf::transformEigenToTF(lidar_to_cam_aff, trans);
-    br.sendTransform(tf::StampedTransform(trans, ros::Time::now(), "camera", "lidar"));
+    // static tf::TransformBroadcaster br;
+    // tf::Transform trans;
+    // Eigen::Isometry3d lidar_to_cam_aff;
+    // lidar_to_cam_aff.matrix() = lidar_to_cam_ * pose_init_;
+    // tf::transformEigenToTF(lidar_to_cam_aff, trans);
+    // br.sendTransform(tf::StampedTransform(trans, ros::Time::now(), "camera", "lidar"));
 
 
     Eigen::MatrixXd points_3d_in_cam = points_3d_in_cam_homo.block(0, 0, 3, pcl_cloud->size());
@@ -166,6 +164,7 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
     /* Publish the filtered cloud which are in camera view.*/
     pcl::PointCloud<pcl::PointXYZ> out_cloud;
     pcl::PointXYZ tmp;
+
     for(int i = 0; i < pcl_cloud->size(); i++)
     {
         int pixel_x = points_2d_homo(0, i) / points_2d_homo(2, i);
@@ -180,13 +179,15 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         tmp.z = points_3d_in_cam_homo(2, i);
         out_cloud.push_back(tmp);
     }
+    cout << out_cloud.size() << endl;
     sensor_msgs::PointCloud2 out_cloud_ros;
     pcl::toROSMsg(out_cloud, out_cloud_ros);
     out_cloud_ros.header.frame_id = "world";
     out_cloud_ros.header.stamp = cloud->header.stamp;
+    
     projected_cloud_pub.publish(out_cloud_ros);
 
-    cout << "Project cost time : " << tt.toc()/1000 << "s" << endl;
+    // cout << "Project cost time : " << tt.toc()/1000 << "s" << endl;
 }
 
 int main(int argc, char** argv)

@@ -28,6 +28,10 @@ public:
 private:
     void readParam();
     void callback(const sensor_msgs::ImageConstPtr& yolo_img, const sensor_msgs::PointCloud2ConstPtr& cropped_cloud, const darknet_ros_msgs::BoundingBoxesConstPtr& bd_boxes);
+    void drawCube(cv::Mat& src_img, cv::Point3d min_xyz, cv::Point3d max_xyz);
+    /* Kmeans for seperate foreground and background */
+    std::vector<cv::Point3f> clusterPoints(std::vector<cv::Point3f>& points);
+    bool filterBboxByArea(const darknet_ros_msgs::BoundingBox& bbox, double range);
 
     /** ros params **/
     ros::NodeHandle nh_, nh_local_;
@@ -44,6 +48,7 @@ private:
 
     /** class variable **/
     Eigen::Matrix3d cam_intrins_;
+    std::map<std::string, std::pair<double, double>> area_thres_;
 };
 
 #endif // !ENHANCED_YOLO_H_

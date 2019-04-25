@@ -75,8 +75,7 @@ find_package(PCL REQUIRED)
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
-#   DEPENDENCIES
-#   std_msgs
+#   darknet_ros_msgs
 # )
 
 ################################################
@@ -111,7 +110,7 @@ find_package(PCL REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
  LIBRARIES OpenCV
- CATKIN_DEPENDS roscpp rospy std_msgs tf tf_conversions
+ CATKIN_DEPENDS roscpp rospy std_msgs tf tf_conversions 
 #  DEPENDS system_lib
 )
 
