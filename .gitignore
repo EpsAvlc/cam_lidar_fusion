@@ -52,5 +52,5 @@ qtcreator-*
 CATKIN_IGNORE
 
 /cam_lidar_fusion/bags/
-
+/A-LOAM/
 /darknet_ros

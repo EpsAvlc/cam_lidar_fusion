@@ -16,6 +16,9 @@ Currentely I have calibrate camera and lidar by this [ros package](https://githu
 
 After calib, I implement an enhanced yolo detection result -- result with xyz coordinate in camera coordinates.
 
+Here's the work on KITTI dataset(I am still improving it.)
+![](./resource/kitti.gif)
+
 <!-- ![custom_proj](./resource/custom_proj.png) -->
 
 ## Related paper

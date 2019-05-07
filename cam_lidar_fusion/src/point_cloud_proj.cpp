@@ -30,6 +30,7 @@ PointCloudProj::PointCloudProj(ros::NodeHandle& nh, ros::NodeHandle& nh_local): 
     readParam();
     cam_sub_.subscribe(nh_, cam_topic_, 1);
     lidar_sub_.subscribe(nh_, lidar_topic_, 1);
+    ROS_INFO("%s", lidar_topic_.c_str());
     sync.reset(new Sync(cam_lidar_fuse_policy(10), cam_sub_, lidar_sub_));
     sync->registerCallback(boost::bind(&PointCloudProj::callback, this, _1, _2));
     projected_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("cropped_cloud", 1);
@@ -48,6 +49,7 @@ void PointCloudProj::readParam()
     cam_intrins_.transposeInPlace();
     
     vector<double> xyzrpy_init;
+    pose_init_ = Eigen::Matrix4d::Zero();
     if(nh_local_.getParam("xyzrpy_init", xyzrpy_init))
     {
         Eigen::AngleAxisd rollAngle(Eigen::AngleAxisd(xyzrpy_init[3], Eigen::Vector3d::UnitX()));
@@ -59,7 +61,16 @@ void PointCloudProj::readParam()
         pose_init_(2, 3) = xyzrpy_init[2];
         pose_init_(3, 3) = 1;
     }
-
+    else
+    {
+        pose_init_(0, 0) = 1;
+        pose_init_(1, 1) = 1;
+        pose_init_(2, 2) = 1;
+        pose_init_(0, 3) = 0;
+        pose_init_(1, 3) = 0;
+        pose_init_(2, 3) = 0;
+        pose_init_(3, 3) = 1;
+    }
     vector<double> xyzrpy;
     if(nh_local_.getParam("xyzrpy", xyzrpy))
     {
@@ -75,7 +86,7 @@ void PointCloudProj::readParam()
     else
     {
         vector<double> lidar2cam_data;
-        nh_local_.getParam("/cam_lidar_fusion/lidar2cam", lidar2cam_data);
+        nh_local_.getParam("lidar2cam", lidar2cam_data);
         ROS_ASSERT(lidar2cam_data.size() == 16);
         for(int i = 0; i < lidar2cam_data.size(); i++)
         {
@@ -83,14 +94,14 @@ void PointCloudProj::readParam()
         }
         lidar_to_cam_.transposeInPlace();
     }
-
+    cout << lidar_to_cam_ << endl;
     nh_local_.getParam("cam_topic", cam_topic_);
-    nh_local_.getParam("lidar_topic", lidar_topic_);
+    if(!nh_local_.getParam("/lidar_topic", lidar_topic_))
+        ROS_ERROR("failed to read lidar topic.");
 }
 
 void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sensor_msgs::PointCloud2ConstPtr& cloud)
 {
-    // ROS_INFO("FUCK!!");
     pcl::console::TicToc tt;
     tt.tic();
 
@@ -105,9 +116,9 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         pass.setFilterLimits (0.0, 100);
         pass.filter (*pcl_cloud);
 
-        pass.setFilterFieldName ("z");
-        pass.setFilterLimits (-0.8, 2);
-        pass.filter (*pcl_cloud);
+        // pass.setFilterFieldName ("z");
+        // pass.setFilterLimits (-1.5, 2);
+        // pass.filter (*pcl_cloud);
     } 
     Eigen::MatrixXd points_3d_homo(4, pcl_cloud->size());
 
@@ -121,8 +132,9 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
 
     Eigen::MatrixXd points_3d_in_cam_homo = lidar_to_cam_ * pose_init_ *  points_3d_homo;
 
-    // cout << "Final transform: " << endl << lidar_to_cam_ * pose_init_ << endl;
-
+    Eigen::MatrixXd final_trans = lidar_to_cam_ * pose_init_;
+    Eigen::Matrix3d final_rot = final_trans.block(0,0,3,3);
+    Eigen::Vector3d euler_angles = final_rot.eulerAngles(2, 1, 0); 
     // broad cast tf
     // static tf::TransformBroadcaster br;
     // tf::Transform trans;
@@ -179,7 +191,7 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         tmp.z = points_3d_in_cam_homo(2, i);
         out_cloud.push_back(tmp);
     }
-    cout << out_cloud.size() << endl;
+    // cout << out_cloud.size() << endl;
     sensor_msgs::PointCloud2 out_cloud_ros;
     pcl::toROSMsg(out_cloud, out_cloud_ros);
     out_cloud_ros.header.frame_id = "world";
@@ -193,7 +205,7 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "point_cloud_proj");
-    ros::NodeHandle nh(""), nh_local("cam_lidar_fusion");
+    ros::NodeHandle nh(""), nh_local("");
     PointCloudProj pcp(nh, nh_local);
     ros::spin();
 }

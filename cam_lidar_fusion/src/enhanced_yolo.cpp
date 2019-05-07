@@ -23,11 +23,11 @@ using namespace cv;
 EnhancedYOLO::EnhancedYOLO(ros::NodeHandle& nh, ros::NodeHandle& nh_local): nh_(nh), nh_local_(nh_local)
 {
     readParam();
-    yolo_sub_.subscribe(nh_, "/camera/image", 1);
-    lidar_sub_.subscribe(nh_, "/cropped_cloud", 1);
-    bd_box_sub_.subscribe(nh_, "/darknet_ros/bounding_boxes", 1);
+    yolo_sub_.subscribe(nh_, "/kitti/camera_color_left/image_raw", 20);
+    lidar_sub_.subscribe(nh_, "/cropped_cloud", 20);
+    bd_box_sub_.subscribe(nh_, "/darknet_ros/bounding_boxes", 20);
     // because generate cropped cloud cost too much time, so we need to set buffer bigger = 50. 
-    sync.reset(new Sync(enhanced_yolo_policy(50), yolo_sub_, lidar_sub_, bd_box_sub_));
+    sync.reset(new Sync(enhanced_yolo_policy(10), yolo_sub_, lidar_sub_, bd_box_sub_));
     sync->registerCallback(boost::bind(&EnhancedYOLO::callback, this, _1, _2, _3));
     detect_result_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("detect_result_cloud", 1);
     enhanced_yolo_img_pub_ = nh_.advertise<sensor_msgs::Image>("enhanced_yolo_img", 1);
@@ -55,11 +55,25 @@ vector<Point3f> EnhancedYOLO::clusterPoints(vector<Point3f>& points)
     kmeans(points, 2,  labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 3, KMEANS_PP_CENTERS);
     
     vector<Point3f> points_class[2];
+    double z[2];
     for(int i = 0; i < points.size(); i++ )
     {
         points_class[labels.at<int>(i)].push_back(points[i]);
+        z[labels.at<int>(i)] += points[i].z;
     }
-    int foreground_label = points_class[0][0].z < points_class[1][0].z ? 0 : 1;
+    for(int i = 0; i < 2; i ++)
+    {
+        z[i] /= points_class[i].size();
+    }
+    // int foreground_label = 0;
+    // for(int i = 1; i < 2; i++ )
+    // {
+    //     if(z[i] < z[foreground_label])
+    //     {
+    //         foreground_label = i;
+    //     }
+    // }
+    int foreground_label = points_class[0].size() > points_class[1].size() ? 0 : 1;
     return points_class[foreground_label];
 }
 
@@ -67,6 +81,8 @@ bool EnhancedYOLO::filterBboxByArea(const darknet_ros_msgs::BoundingBox& bbox, d
 {
     int bbox_area = (bbox.xmax - bbox.xmin) * (bbox.ymax - bbox.ymin);
     string bbox_class = bbox.Class;
+    if(area_thres_.count(bbox_class) < 1)
+        return false;
     Eigen::MatrixXd rect_corners(3, 4);
     rect_corners.block(0,0,3,1) << 0, 0, range;
     rect_corners.block(0,1,3,1) << area_thres_[bbox_class].first, 0, range;
@@ -86,7 +102,7 @@ bool EnhancedYOLO::filterBboxByArea(const darknet_ros_msgs::BoundingBox& bbox, d
     double height = rect_corners_2d[2].y - rect_corners_2d[1].y;
     int hypo_area = static_cast<int>(width * height);
     // cout << bbox_area << ", " << hypo_area << endl;
-    if(bbox_area < hypo_area * 0.5 || bbox_area > hypo_area * 1.5)
+    if(bbox_area < hypo_area * 0.0 || bbox_area > hypo_area * 3)
     {
         // cout << hypo_area * 0.5 << endl;
         return false;
@@ -123,22 +139,24 @@ void EnhancedYOLO::drawCube(Mat& img, Point3d min_xyz, Point3d max_xyz)
         tmp.y = corners_2d_homo(1, i) / corners_2d_homo(2, i);
         corners_2d.push_back(tmp);
     }
-    line(img, corners_2d[0], corners_2d[1], Scalar(197,07,30), 2);
-    line(img, corners_2d[0], corners_2d[2], Scalar(197,07,30), 2);
-    line(img, corners_2d[0], corners_2d[4], Scalar(197,07,30), 2);
-    line(img, corners_2d[1], corners_2d[3], Scalar(197,07,30), 2);
-    line(img, corners_2d[1], corners_2d[5], Scalar(197,07,30), 2);
-    line(img, corners_2d[2], corners_2d[3], Scalar(197,07,30), 2);
-    line(img, corners_2d[2], corners_2d[6], Scalar(197,07,30), 2);
-    line(img, corners_2d[3], corners_2d[7], Scalar(197,07,30), 2);
-    line(img, corners_2d[4], corners_2d[5], Scalar(197,07,30), 2);
-    line(img, corners_2d[4], corners_2d[6], Scalar(197,07,30), 2);
-    line(img, corners_2d[5], corners_2d[7], Scalar(197,07,30), 2);
-    line(img, corners_2d[6], corners_2d[7], Scalar(197,07,30), 2);
+    int thickness = 2;
+    line(img, corners_2d[0], corners_2d[1], Scalar(197,75,30), thickness);
+    line(img, corners_2d[0], corners_2d[2], Scalar(197,75,30), thickness);
+    line(img, corners_2d[0], corners_2d[4], Scalar(197,75,30), thickness);
+    line(img, corners_2d[1], corners_2d[3], Scalar(197,75,30), thickness);
+    line(img, corners_2d[1], corners_2d[5], Scalar(197,75,30), thickness);
+    line(img, corners_2d[2], corners_2d[3], Scalar(197,75,30), thickness);
+    line(img, corners_2d[2], corners_2d[6], Scalar(197,75,30), thickness);
+    line(img, corners_2d[3], corners_2d[7], Scalar(197,75,30), thickness);
+    line(img, corners_2d[4], corners_2d[5], Scalar(197,75,30), thickness);
+    line(img, corners_2d[4], corners_2d[6], Scalar(197,75,30), thickness);
+    line(img, corners_2d[5], corners_2d[7], Scalar(197,75,30), thickness);
+    line(img, corners_2d[6], corners_2d[7], Scalar(197,75,30), thickness);
 }
 
 void EnhancedYOLO::callback(const sensor_msgs::ImageConstPtr& yolo_img, const sensor_msgs::PointCloud2ConstPtr& cropped_cloud, const darknet_ros_msgs::BoundingBoxesConstPtr& bd_boxes)
 {
+    // cout << "Enter callback" << endl;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cloud (new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromROSMsg(*cropped_cloud, *pcl_cloud);
 
@@ -165,6 +183,7 @@ void EnhancedYOLO::callback(const sensor_msgs::ImageConstPtr& yolo_img, const se
         cvtColor(src_img, src_img, CV_GRAY2BGR);
     for(auto bd_box : bd_boxes->bounding_boxes)
     {
+
         vector<Point3f> points;
         Point3f tmp;
         for(int i = 0; i < pcl_cloud->size(); i++)
@@ -180,11 +199,13 @@ void EnhancedYOLO::callback(const sensor_msgs::ImageConstPtr& yolo_img, const se
         }
         if(points.size() < 2)
         {
+            rectangle(src_img, Point(bd_box.xmin, bd_box.ymin), Point(bd_box.xmax, bd_box.ymax), Scalar(30,07,197), 3);
+            putText(src_img, "fake", Point(bd_box.xmin+5, bd_box.ymin + 25), cv::FONT_HERSHEY_TRIPLEX, 1, Scalar(0, 255, 255));
             continue;
         }
         
         vector<Point3f> points_fg = this->clusterPoints(points);
-
+        // vector<Point3f> points_fg = points;
         Point3d min_xyz(10000, 10000, 10000), max_xyz(-10000, -10000, -10000);
         for(int i = 0; i < points_fg.size(); i++)
         {
@@ -208,19 +229,29 @@ void EnhancedYOLO::callback(const sensor_msgs::ImageConstPtr& yolo_img, const se
             if(max_xyz.z < tmp_pt.z)
                 max_xyz.z = tmp_pt.z;
         }
-        if(! this->filterBboxByArea(bd_box, (min_xyz.z + max_xyz.z) / 2) || max_xyz.z - min_xyz.z >5)
+    
+        if(! this->filterBboxByArea(bd_box, (min_xyz.z + max_xyz.z) / 2))
         {
-            rectangle(src_img, Point(bd_box.xmin, bd_box.ymin), Point(bd_box.xmax, bd_box.ymax), Scalar(30,07,197), 2);
+            rectangle(src_img, Point(bd_box.xmin, bd_box.ymin), Point(bd_box.xmax, bd_box.ymax), Scalar(30,07,197), 3);
             putText(src_img, "fake", Point(bd_box.xmin+5, bd_box.ymin + 25), cv::FONT_HERSHEY_TRIPLEX, 1, Scalar(0, 255, 255));
         }
         else
         {
+            double ave_x = (max_xyz.x + min_xyz.x) / 2;
+            double ave_y = (max_xyz.y + min_xyz.y) / 2;
+            double ave_z = (max_xyz.z + min_xyz.z) / 2;
+            
+
             this->drawCube(src_img, min_xyz, max_xyz);
             putText(src_img, bd_box.Class, Point(bd_box.xmin+5, bd_box.ymin + 25), cv::FONT_HERSHEY_TRIPLEX, 1, Scalar(0, 255, 255));
+
+            char loc_str[30];
+            sprintf(loc_str, "%.2f, %.2f, %.2f", ave_x, ave_y, ave_z);
+            putText(src_img, loc_str, Point(bd_box.xmin+15, bd_box.ymax - 25), cv::FONT_HERSHEY_DUPLEX, 0.5, Scalar(255, 255, 255), 1);
         }
     }
+
     imshow("disp", src_img);
-    imwrite("//home//cm//enhanced_yolo.png", src_img);
     waitKey(5);
 
     sensor_msgs::PointCloud2 out_cloud_ros;
@@ -234,11 +265,24 @@ void EnhancedYOLO::callback(const sensor_msgs::ImageConstPtr& yolo_img, const se
     enhanced_yolo_img_pub_.publish(msg);
 }
 
+void pcCallback(const sensor_msgs::PointCloud2ConstPtr& bd_boxes)
+{
+    cout << "lidar: " << bd_boxes->header.stamp << endl;
+}
+
+void cCallback(const darknet_ros_msgs::BoundingBoxesConstPtr& bd_boxes)
+{
+    cout << "box: " << bd_boxes->header.stamp << endl;
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "enhanced_yolo");
-    ros::NodeHandle nh(""), nh_local("cam_lidar_fusion");
+    ros::NodeHandle nh(""), nh_local("");
     EnhancedYOLO eyolo(nh, nh_local);
     // ROS_INFO("Init");
+    // ros::Subscriber sub = nh.subscribe("/cropped_cloud", 1, pcCallback);
+    // ros::Subscriber sub2 = nh.subscribe("/darknet_ros/bounding_boxes", 1, cCallback);
+
     ros::spin();
 }

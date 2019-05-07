@@ -1,0 +1,21 @@
+<launch>
+    <param name="use_sim_time" value="true" />
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/online_fusion_kitti.yaml" />
+    
+    <rosparam command="load" file="$(arg config_file)" ns=""/>
+
+    <arg name="bag_path" default="$(find cam_lidar_fusion)/bags/kitti_2011_10_03_drive_0027_synced.bag" />
+    
+    <node pkg="rosbag" type="play" name="rosbag" args="--clock $(arg bag_path)"/>
+
+    <node pkg="cam_lidar_fusion" type="ground_plane_fitter" name="ground_plane_fitter" output="screen">
+        <param name="n_iter" value="1"/>
+        <param name="n_lpr" value="2000"/>
+        <param name="topic_str" value="/kitti/velo/pointcloud"/>
+        <param name="thres_seeds" value="2"/>
+        <param name="thres_dist" value="-0.12"/>
+    </node>
+    <node name="point_cloud_project_node" pkg="cam_lidar_fusion" type="point_cloud_proj" output="screen"/>
+    <include file="$(find darknet_ros)/launch/darknet_ros.launch"/>
+    <node name="enhanced_yolo" pkg="cam_lidar_fusion" type="enhanced_yolo" output="screen"/>
+</launch>

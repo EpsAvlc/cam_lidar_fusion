@@ -183,6 +183,10 @@ target_link_libraries(image_publisher
   ${OpenCV_LIBRARIES}
 )
 
+add_executable(ground_plane_fitter src/ground_plane_fitter.cpp)
+target_link_libraries(ground_plane_fitter ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+add_dependencies(ground_plane_fitter ${catkin_EXPORTED_TARGETS})
+
 #############
 ## Install ##
 #############
