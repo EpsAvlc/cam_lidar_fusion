@@ -1,14 +1,9 @@
 /*
  * Created on Mon Oct 22 2018
- *
- * Copyright (c) 2018 HITSZ-NRSL
- * All rights reserved
- *
  * Author: EpsAvlc
  * Note: Remove ground from the points cloud.
  *      Algrothm proposed by 
  *     《Fast segmentation of 3D point clouds: A paradigm on LiDAR data for autonomous vehicle applications》
- *      Fuck it. Too slow and the result is obviously useless => norm vector = (0,0,1)
  */
 
 #ifndef IMU_LIDAR_FUSE_GROUND_TRANSFORM_H_

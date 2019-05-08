@@ -4,8 +4,8 @@ Simultaneously Calibration camere and lidar's extrins parameter, and project poi
 -------------
 ## TODO:
 
-- [x] camera's front-end //  Use [A-LOAM](https://github.com/HKUST-Aerial-Robotics/A-LOAM)
-- [ ] lidar's front-end
+- [ ] camera's front-end 
+- [X] lidar's front-end //  Use [A-LOAM](https://github.com/HKUST-Aerial-Robotics/A-LOAM)
 - [ ] construct non-linear calib problem.
 - [X] projection[kitti_dataset.]:
   ![](./resource/proj.png)
@@ -18,8 +18,6 @@ After calib, I implement an enhanced yolo detection result -- result with xyz co
 
 Here's the work on KITTI dataset(I am still constructing it.)
 ![](./resource/kitti.gif)
-
-<!-- ![custom_proj](./resource/custom_proj.png) -->
 
 ## Related paper
 [LiDAR and Camera Calibration using Motion Estimated by Sensor Fusion Odometry](https://arxiv.org/abs/1804.05178)

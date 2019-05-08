@@ -1,0 +1,11 @@
+<launch>
+    <arg name="bag_path" default="$(find cam_lidar_fusion)/bags/00.bag" />
+    <node pkg="rosbag" type="play" name="rosbag" args="$(arg bag_path)"/>
+    
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/kitti.yaml" />
+    <rosparam command="load" file="$(arg config_file)"/>
+
+    <!-- <include file="$(find aloam_velodyne)/launch/aloam_velodyne_HDL_64.launch"/> -->
+    <node pkg="cam_lidar_fusion" type="cam_lidar_calib" name="cam_lidar_calib" output="screen"/>
+
+</launch>

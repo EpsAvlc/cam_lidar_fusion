@@ -1,9 +1,5 @@
 /*
  * Created on Tue Apr 16 2019
- *
- * Copyright (c) 2019 HITSZ-NRSL
- * All rights reserved
- *
  * Author: EpsAvlc
  */
 

@@ -151,13 +151,6 @@ target_link_libraries(point_cloud_proj
   ${PCL_LIBRARIES}
 )
 
-add_executable(lidar_odometry src/lidar_odometry_node.cpp)
-target_link_libraries(lidar_odometry
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
-
 add_executable(enhanced_yolo src/enhanced_yolo.cpp)
 target_link_libraries(enhanced_yolo
   ${catkin_LIBRARIES}
@@ -185,7 +178,13 @@ target_link_libraries(image_publisher
 
 add_executable(ground_plane_fitter src/ground_plane_fitter.cpp)
 target_link_libraries(ground_plane_fitter ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-add_dependencies(ground_plane_fitter ${catkin_EXPORTED_TARGETS})
+
+add_executable(cam_lidar_calib src/cam_lidar_calib.cpp)
+target_link_libraries(cam_lidar_calib 
+  ${catkin_LIBRARIES} 
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
 #############
 ## Install ##
