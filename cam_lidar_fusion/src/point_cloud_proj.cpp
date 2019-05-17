@@ -170,8 +170,8 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
     // waitKey(5);
 
     /* Publish the filtered cloud which are in camera view.*/
-    pcl::PointCloud<pcl::PointXYZ> out_cloud;
-    pcl::PointXYZ tmp;
+    pcl::PointCloud<pcl::PointXYZRGB> out_cloud;
+    pcl::PointXYZRGB tmp;
 
     for(int i = 0; i < pcl_cloud->size(); i++)
     {
@@ -185,6 +185,9 @@ void PointCloudProj::callback(const sensor_msgs::ImageConstPtr& image, const sen
         tmp.x = points_3d_in_cam_homo(0, i);
         tmp.y = points_3d_in_cam_homo(1, i);
         tmp.z = points_3d_in_cam_homo(2, i);
+        tmp.r = img_ptr->image.at<uchar>(pixel_y, pixel_x);
+        tmp.g = img_ptr->image.at<uchar>(pixel_y, pixel_x);
+        tmp.b = img_ptr->image.at<uchar>(pixel_y, pixel_x);
         out_cloud.push_back(tmp);
     }
     // cout << out_cloud.size() << endl;

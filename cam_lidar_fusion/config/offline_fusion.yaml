@@ -1,4 +1,4 @@
-cam_topic: "/camera/image"
+cam_topic: "/kitti/camera_color_left/image_raw"
 lidar_topic: "/cloud_pcd"
 
 cam_intrins:
